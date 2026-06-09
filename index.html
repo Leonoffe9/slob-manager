@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SLOB Manager — IMPROM SA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:     #0f1117;
+    --card:   #1a1d27;
+    --card2:  #222638;
+    --border: #2d3148;
+    --text:   #e2e8f0;
+    --muted:  #8892a4;
+    --accent: #f59e0b;
+    --acc2:   #fbbf24;
+    --green:  #10b981;
+    --red:    #ef4444;
+    --blue:   #3b82f6;
+    --purple: #8b5cf6;
+    --radius: 10px;
+    --font:   'Inter', system-ui, sans-serif;
+  }
+  html { font-size: 15px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* ── Layout ── */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem; display: flex; align-items: center;
+    justify-content: space-between; height: 58px; position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.05rem; color: var(--accent); }
+  .logo-sub { font-weight: 400; font-size: .8rem; color: var(--muted); margin-left: .3rem; }
+  .header-right { display: flex; align-items: center; gap: .75rem; }
+  .last-updated { font-size: .72rem; color: var(--muted); }
+
+  /* ── Tabs ── */
+  nav {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    display: flex; overflow-x: auto; padding: 0 1.5rem;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    background: none; border: none; color: var(--muted);
+    padding: .85rem 1.2rem; font-size: .875rem; font-weight: 500;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    white-space: nowrap; display: flex; align-items: center; gap: .45rem;
+    transition: color .2s, border-color .2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Main ── */
+  main { flex: 1; padding: 1.5rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .45rem .9rem; border-radius: 6px; font-size: .8rem;
+    font-weight: 500; cursor: pointer; border: none; transition: .15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: var(--acc2); }
+  .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+  .btn-sm { padding: .3rem .65rem; font-size: .75rem; }
+
+  /* ── KPI Cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem;
+    position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent); border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .kpi-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .55rem; }
+  .kpi-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .kpi-value.sm { font-size: 1.3rem; }
+  .kpi-sub { font-size: .73rem; color: var(--muted); margin-top: .4rem; }
+
+  /* ── Filters ── */
+  .filters {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: .75rem 1rem;
+    display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: 1rem;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-icon { position: absolute; left: .65rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  input, select, textarea {
+    background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: .45rem .7rem;
+    font-size: .85rem; font-family: var(--font); outline: none; transition: border-color .2s;
+  }
+  .search-wrap input { width: 100%; padding-left: 2rem; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--card2); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* ── Table ── */
+  .table-wrap {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 750px; }
+  thead th {
+    background: var(--card2); padding: .7rem 1rem;
+    text-align: left; font-size: .72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+    position: sticky; top: 0; z-index: 1; cursor: pointer;
+    user-select: none; white-space: nowrap;
+  }
+  thead th:hover { color: var(--text); }
+  thead th.sort-asc, thead th.sort-desc { color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--card2); }
+  td { padding: .6rem 1rem; font-size: .84rem; }
+  .table-footer { padding: .55rem 1rem; font-size: .73rem; color: var(--muted); border-top: 1px solid var(--border); }
+
+  /* Risk borders */
+  tr.risk-a td:first-child { border-left: 3px solid var(--red); }
+  tr.risk-b td:first-child { border-left: 3px solid var(--accent); }
+  tr.risk-c td:first-child { border-left: 3px solid var(--blue); }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block; padding: .18rem .5rem; border-radius: 99px;
+    font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  }
+  .badge-red    { background: rgba(239,68,68,.15);   color: var(--red);    }
+  .badge-yellow { background: rgba(245,158,11,.15);  color: var(--accent); }
+  .badge-blue   { background: rgba(59,130,246,.15);  color: var(--blue);   }
+  .badge-green  { background: rgba(16,185,129,.15);  color: var(--green);  }
+  .badge-purple { background: rgba(139,92,246,.15);  color: var(--purple); }
+  .badge-muted  { background: rgba(136,146,164,.12); color: var(--muted);  }
+
+  /* Tendencia */
+  .tend-up   { color: var(--green); font-weight: 600; }
+  .tend-down { color: var(--red);   font-weight: 600; }
+
+  /* ── Plan form ── */
+  .form-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem;
+  }
+  .form-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .75rem; }
+  .form-group { display: flex; flex-direction: column; gap: .35rem; }
+  .form-group label { font-size: .74rem; color: var(--muted); font-weight: 500; }
+  .form-group.span-2 { grid-column: span 2; }
+  .form-group.span-full { grid-column: 1 / -1; }
+  .form-error { color: var(--red); font-size: .78rem; margin-top: .5rem; display: none; }
+
+  /* ── Evolución cards ── */
+  .evo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+  .evo-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem;
+  }
+  .evo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .85rem; gap: .5rem; }
+  .evo-title { font-weight: 600; font-size: .9rem; line-height: 1.3; }
+  .evo-strategy { font-size: .77rem; color: var(--muted); margin-top: .25rem; }
+  .evo-badges { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+  .progress-wrap { margin: .75rem 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-bottom: .3rem; }
+  .progress-bar { height: 8px; background: var(--card2); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+  .evo-stats { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .75rem; }
+  .evo-stat { background: var(--card2); border-radius: 6px; padding: .5rem .7rem; }
+  .evo-stat-label { font-size: .69rem; color: var(--muted); }
+  .evo-stat-value { font-size: .95rem; font-weight: 600; margin-top: .1rem; }
+
+  /* ── Loading / error ── */
+  .state-center {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 3rem 1rem; gap: 1rem;
+    color: var(--muted); text-align: center;
+  }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CSV Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.72);
+    display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; width: 100%; max-width: 560px;
+  }
+  .modal h2 { font-size: 1rem; font-weight: 600; margin-bottom: .5rem; }
+  .modal p { font-size: .82rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.6; }
+  .modal textarea { width: 100%; min-height: 180px; font-size: .77rem; font-family: monospace; margin-bottom: .75rem; }
+  .modal-actions { display: flex; gap: .6rem; justify-content: flex-end; }
+
+  /* ── Misc ── */
+  .section-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: .5rem; }
+  .empty-row td { text-align: center; color: var(--muted); padding: 2rem; }
+  .plan-actions { display: flex; gap: .4rem; }
+
+  @media (max-width: 640px) {
+    header { padding: 0 1rem; }
+    main { padding: 1rem; }
+    .logo-sub, .last-updated { display: none; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .form-group.span-2 { grid-column: span 1; }
+    .evo-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <i data-lucide="package-x" style="width:20px;height:20px"></i>
+    SLOB Manager
+    <span class="logo-sub">IMPROM SA</span>
+  </div>
+  <div class="header-right">
+    <span class="last-updated" id="last-updated"></span>
+    <button class="btn btn-secondary" id="btn-refresh">
+      <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
+      Actualizar
+    </button>
+    <button class="btn btn-secondary btn-sm" id="btn-load-csv" title="Cargar CSV manualmente">
+      <i data-lucide="upload" style="width:13px;height:13px"></i>
+      CSV
+    </button>
+  </div>
+</header>
+
+<!-- Tabs -->
+<nav>
+  <button class="tab-btn active" data-tab="dashboard">
+    <i data-lucide="layout-dashboard" style="width:15px;height:15px"></i>
+    Dashboard
+  </button>
+  <button class="tab-btn" data-tab="planes">
+    <i data-lucide="clipboard-list" style="width:15px;height:15px"></i>
+    Plan de Acción
+  </button>
+  <button class="tab-btn" data-tab="evolucion">
+    <i data-lucide="trending-down" style="width:15px;height:15px"></i>
+    Evolución
+  </button>
+</nav>
+
+<main>
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <section id="dashboard" class="section active">
+
+    <!-- KPIs del sheet (fila 3) -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total SLOBs</div>
+        <div class="kpi-value" id="kpi-count">—</div>
+        <div class="kpi-sub">SKUs criterio &gt;12 meses</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Valorizado Total</div>
+        <div class="kpi-value sm" id="kpi-valor">—</div>
+        <div class="kpi-sub" id="kpi-valor-sub">USD</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">% del Catálogo</div>
+        <div class="kpi-value" id="kpi-pct">—</div>
+        <div class="kpi-sub">Penetración SLOB</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Stock Total (unidades)</div>
+        <div class="kpi-value" id="kpi-stock">—</div>
+        <div class="kpi-sub">Suma inventario SLOB</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cobertura Prom.</div>
+        <div class="kpi-value" id="kpi-cobert">—</div>
+        <div class="kpi-sub">Meses promedio de stock</div>
+      </div>
+    </div>
+
+    <!-- Estado de carga -->
+    <div id="dash-state" class="state-center">
+      <div class="spinner"></div>
+      <span>Cargando datos…</span>
+    </div>
+
+    <!-- Contenido principal -->
+    <div id="dash-content" style="display:none">
+      <div class="filters">
+        <div class="search-wrap">
+          <i data-lucide="search" class="search-icon" style="width:14px;height:14px"></i>
+          <input type="text" id="search" placeholder="Buscar nombre, código, marca…" />
+        </div>
+        <select id="f-familia"><option value="">Todas las familias</option></select>
+        <select id="f-marca"><option value="">Todas las marcas</option></select>
+        <select id="f-abc"><option value="">ABC</option></select>
+        <select id="f-origen"><option value="">Origen</option></select>
+        <select id="f-tend"><option value="">Tendencia</option></select>
+        <button class="btn btn-secondary btn-sm" id="btn-clear">
+          <i data-lucide="x" style="width:12px;height:12px"></i> Limpiar
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table id="main-table">
+          <thead>
+            <tr>
+              <th data-col="Código">Código <span>↕</span></th>
+              <th data-col="Nombre">Nombre <span>↕</span></th>
+              <th data-col="Familia">Familia <span>↕</span></th>
+              <th data-col="Marca">Marca <span>↕</span></th>
+              <th data-col="ABC">ABC <span>↕</span></th>
+              <th data-col="Stock actual" style="text-align:right">Stock <span>↕</span></th>
+              <th data-col="Costo USD" style="text-align:right">Costo USD <span>↕</span></th>
+              <th data-col="Valorizado USD" style="text-align:right">Valorizado <span>↕</span></th>
+              <th data-col="Prom. mes" style="text-align:right">Prom/mes <span>↕</span></th>
+              <th data-col="Cobert (m)" style="text-align:right">Cobert. (m) <span>↕</span></th>
+              <th data-col="Tendencia">Tendencia <span>↕</span></th>
+              <th data-col="Responsable">Responsable <span>↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="table-footer" id="table-footer"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PLAN DE ACCIÓN ═══ -->
+  <section id="planes" class="section">
+    <div class="section-title">
+      <i data-lucide="clipboard-list" style="width:20px;height:20px;color:var(--accent)"></i>
+      Plan de Acción por Producto
+    </div>
+
+    <div class="form-card">
+      <h3 id="form-title">
+        <i data-lucide="plus-circle" style="width:16px;height:16px;color:var(--green)"></i>
+        Nuevo Plan
+      </h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Producto *</label>
+          <select id="plan-producto">
+            <option value="">— Seleccionar producto —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Responsable</label>
+          <input type="text" id="plan-responsable" placeholder="Nombre del responsable" />
+        </div>
+        <div class="form-group span-2">
+          <label>Estrategia / Acción *</label>
+          <textarea id="plan-estrategia" placeholder="Ej: Promoción 2x1, Bundle con producto X, Liquidación 40% off…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Fecha de inicio</label>
+          <input type="date" id="plan-fecha" />
+        </div>
+        <div class="form-group">
+          <label>Objetivo (unidades a mover)</label>
+          <input type="number" id="plan-objetivo" placeholder="Opcional" min="0" />
+        </div>
+      </div>
+      <div style="margin-top:.9rem;display:flex;gap:.6rem;flex-wrap:wrap">
+        <button class="btn btn-primary" id="btn-save-plan">
+          <i data-lucide="save" style="width:14px;height:14px"></i>
+          Guardar Plan
+        </button>
+        <button class="btn btn-secondary" id="btn-cancel-plan">Cancelar</button>
+      </div>
+      <div class="form-error" id="plan-error"></div>
+    </div>
+
+    <div class="form-card">
+      <h3>
+        <i data-lucide="list" style="width:16px;height:16px;color:var(--blue)"></i>
+        Planes Guardados
+      </h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Código</th>
+              <th>Estrategia</th>
+              <th>Responsable</th>
+              <th>Fecha inicio</th>
+              <th>Objetivo</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="plans-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ EVOLUCIÓN ═══ -->
+  <section id="evolucion" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
+      <div class="section-title" style="margin-bottom:0">
+        <i data-lucide="trending-down" style="width:20px;height:20px;color:var(--accent)"></i>
+        Evolución post Plan de Acción
+      </div>
+      <button class="btn btn-secondary" id="btn-refresh-evo">
+        <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
+        Actualizar stock actual
+      </button>
+    </div>
+    <div id="evo-content"></div>
+  </section>
+
+</main>
+</div>
+
+<!-- CSV Modal -->
+<div class="modal-overlay hidden" id="csv-modal">
+  <div class="modal">
+    <h2>Cargar CSV manualmente</h2>
+    <p>
+      En Google Sheets → <strong>Archivo → Descargar → Valores separados por comas (.csv)</strong><br>
+      Abrí el archivo con el Bloc de Notas, seleccioná todo (Ctrl+A) y pegá aquí.
+    </p>
+    <textarea id="csv-paste" placeholder="Pegar contenido CSV…"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="btn-modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="btn-modal-load">
+        <i data-lucide="upload" style="width:14px;height:14px"></i>
+        Cargar
+      </button>
+    </div>
+    <div class="form-error" id="modal-error" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────────────────
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/1mPK2pIRGZNFP5NSuQHreG6Mhn208uy7zaIsCMqhF-Ng/gviz/tq?tqx=out:csv&gid=1111014850';
+const LS_KEY  = 'slob_action_plans_v2';
+
+// Estructura conocida del CSV:
+// Fila 1: título/metadata  → extraer "Actualizado: DD/MM/YYYY HH:mm"
+// Fila 2: labels resumen   → SLOBs, Valorizado, % Catálogo
+// Fila 3: valores resumen  → 521, USD 1.409.169, 61.0%
+// Fila 4: vacía
+// Fila 5: headers reales   → #, Código, Nombre, Familia, Marca, Origen, ABC, Stock actual, Costo USD, Valorizado USD, Prom. mes, Cobert (m), Tendencia, Responsable, Revisión, Notas
+// Fila 6+: datos
+
+// ─────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────
+let allRows    = [];
+let sortCol    = 'Valorizado USD';
+let sortDir    = 'desc';
+let editingId  = null;
+let sheetMeta  = { count: null, valor: null, pct: null, updated: null };
+
+// ─────────────────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────────────────
+const usd = v => {
+  const n = parseNum(v);
+  if (n === null) return v || '—';
+  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+};
+const usdFull = v => {
+  const n = parseNum(v);
+  return n === null ? '—' : 'USD ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+};
+const numFmt = v => {
+  const n = parseNum(v);
+  return n === null ? '—' : new Intl.NumberFormat('es-AR').format(n);
+};
+function parseNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  // Remove "USD ", currency symbols, and handle comma as decimal or thousands
+  const s = String(v).replace(/USD\s*/i,'').replace(/\$/g,'').trim();
+  // If format is "1.234,56" (ES) → convert
+  const es = s.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(es);
+  return isNaN(n) ? null : n;
+}
+const today = () => new Date().toISOString().split('T')[0];
+const daysBetween = (d1, d2) => Math.round((new Date(d2) - new Date(d1)) / 86400000);
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+// ─────────────────────────────────────────────────────────
+//  CSV PARSER — handles quoted fields, commas inside quotes
+// ─────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  const src = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  let i = 0;
+  while (i < src.length) {
+    const row = [];
+    while (i < src.length && src[i] !== '\n') {
+      if (src[i] === '"') {
+        i++;
+        let f = '';
+        while (i < src.length) {
+          if (src[i] === '"' && src[i+1] === '"') { f += '"'; i += 2; }
+          else if (src[i] === '"') { i++; break; }
+          else f += src[i++];
+        }
+        row.push(f);
+      } else {
+        let f = '';
+        while (i < src.length && src[i] !== ',' && src[i] !== '\n') f += src[i++];
+        row.push(f.trim());
+      }
+      if (i < src.length && src[i] === ',') i++;
+    }
+    if (i < src.length && src[i] === '\n') i++;
+    if (row.some(c => c !== '')) rows.push(row);
+  }
+  return rows;
+}
+
+// ─────────────────────────────────────────────────────────
+//  DATA LOADER
+// ─────────────────────────────────────────────────────────
+async function loadData(csvText = null) {
+  setDashState('loading');
+  try {
+    let text = csvText;
+    if (!text) {
+      const r = await fetch(CSV_URL);
+      if (!r.ok) throw new Error(`HTTP ${r.status} — el sheet no es público`);
+      text = await r.text();
+    }
+    processCSV(text);
+  } catch(e) {
+    setDashState('error', e.message);
+  }
+}
+
+function processCSV(text) {
+  const raw = parseCSV(text);
+
+  // Fila 1: extraer "Actualizado: DD/MM/YYYY HH:mm"
+  const titleRow = raw[0]?.[0] || '';
+  const updMatch = titleRow.match(/Actualizado:\s*([\d/]+ [\d:]+)/i);
+  sheetMeta.updated = updMatch ? updMatch[1] : null;
+
+  // Filas 2-3: KPIs del sheet
+  // raw[1] = ["SLOBs", "", "", "Valorizado", "", "", "% Catálogo", ...]
+  // raw[2] = ["521",   "", "", "USD 1.409.169", "", "", "61.0%", ...]
+  const kpiRow = raw[2] || [];
+  sheetMeta.count = kpiRow[0] || null;
+  sheetMeta.valor = kpiRow[3] || null;
+  sheetMeta.pct   = kpiRow[6] || null;
+
+  // Fila 5 (índice 4): headers reales
+  const headers = raw[4] || [];
+
+  // Fila 6+ (índice 5+): datos
+  allRows = raw.slice(5)
+    .filter(r => r.some(c => c !== '') && r[0] !== '' && !isNaN(r[0]))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
+      return obj;
+    });
+
+  if (allRows.length === 0) throw new Error('No se encontraron filas de datos.');
+
+  renderAll();
+  setDashState(null);
+
+  // Updated label
+  if (sheetMeta.updated) {
+    document.getElementById('last-updated').textContent = 'Actualizado: ' + sheetMeta.updated;
+  }
+}
+
+function setDashState(type, msg = '') {
+  const stEl = document.getElementById('dash-state');
+  const cnt  = document.getElementById('dash-content');
+  if (!type) { stEl.style.display='none'; cnt.style.display='block'; return; }
+  cnt.style.display = 'none';
+  stEl.style.display = 'flex';
+  if (type === 'loading') {
+    stEl.innerHTML = `<div class="spinner"></div><span>Cargando datos…</span>`;
+  } else {
+    stEl.innerHTML = `
+      <i data-lucide="wifi-off" style="width:40px;height:40px;color:var(--red)"></i>
+      <strong style="color:var(--red)">No se pudo cargar el sheet</strong>
+      <span style="max-width:420px;font-size:.85rem">${msg}</span>
+      <span style="font-size:.8rem;color:var(--muted);max-width:420px">
+        Para solucionarlo pedile al dueño del sheet que lo publique como CSV
+        (<em>Archivo → Compartir → Publicar en la web → Hoja "Gestión SLOB" → CSV</em>)
+        o cargalo manualmente con el botón de abajo.
+      </span>
+      <button class="btn btn-primary" onclick="openModal()">
+        <i data-lucide="upload" style="width:14px;height:14px"></i>
+        Cargar CSV manualmente
+      </button>`;
+    lucide.createIcons();
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  RENDER ALL
+// ─────────────────────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+  populateFilters();
+  renderTable();
+  populatePlanDropdown();
+  renderPlans();
+  renderEvolucion();
+}
+
+// ─────────────────────────────────────────────────────────
+//  KPIs
+// ─────────────────────────────────────────────────────────
+function renderKPIs() {
+  // Preferir los KPIs del sheet (ya calculados), fallback a suma local
+  const count = sheetMeta.count || allRows.length;
+  document.getElementById('kpi-count').textContent = numFmt(count);
+
+  if (sheetMeta.valor) {
+    document.getElementById('kpi-valor').textContent = sheetMeta.valor;
+  } else {
+    const tot = allRows.reduce((a,r) => a + (parseNum(r['Valorizado USD'])||0), 0);
+    document.getElementById('kpi-valor').textContent = usdFull(tot);
+  }
+
+  document.getElementById('kpi-pct').textContent = sheetMeta.pct || '—';
+
+  const totStock = allRows.reduce((a,r) => a + (parseNum(r['Stock actual'])||0), 0);
+  document.getElementById('kpi-stock').textContent = numFmt(totStock);
+
+  const cobertArr = allRows.map(r => parseNum(r['Cobert (m)'])).filter(v => v !== null);
+  const promCobert = cobertArr.length ? Math.round(cobertArr.reduce((a,b)=>a+b,0)/cobertArr.length) : null;
+  document.getElementById('kpi-cobert').textContent = promCobert !== null ? promCobert + ' m' : '—';
+}
+
+// ─────────────────────────────────────────────────────────
+//  FILTERS
+// ─────────────────────────────────────────────────────────
+function populateFilters() {
+  fillSelect('f-familia', 'Todas las familias', r => r['Familia']);
+  fillSelect('f-marca',   'Todas las marcas',   r => r['Marca']);
+  fillSelect('f-abc',     'ABC',                r => r['ABC']);
+  fillSelect('f-origen',  'Origen',             r => r['Origen']);
+  fillSelect('f-tend',    'Tendencia',          r => normTend(r['Tendencia']));
+}
+function fillSelect(id, placeholder, getter) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  const vals = [...new Set(allRows.map(getter).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  sel.innerHTML = `<option value="">${placeholder}</option>` +
+    vals.map(v => `<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+}
+function normTend(v) {
+  if (!v) return '';
+  if (v.includes('↑') || v.toLowerCase().includes('crec')) return '↑ Creciendo';
+  if (v.includes('↓') || v.toLowerCase().includes('baj'))  return '↓ Bajando';
+  return v;
+}
+
+function getFiltered() {
+  const q     = document.getElementById('search').value.toLowerCase();
+  const fam   = document.getElementById('f-familia').value;
+  const marca = document.getElementById('f-marca').value;
+  const abc   = document.getElementById('f-abc').value;
+  const orig  = document.getElementById('f-origen').value;
+  const tend  = document.getElementById('f-tend').value;
+
+  return allRows.filter(r => {
+    if (fam   && r['Familia'] !== fam)   return false;
+    if (marca && r['Marca']   !== marca) return false;
+    if (abc   && r['ABC']     !== abc)   return false;
+    if (orig  && r['Origen']  !== orig)  return false;
+    if (tend  && normTend(r['Tendencia']) !== tend) return false;
+    if (q) {
+      const hay = [r['Nombre'],r['Código'],r['Marca'],r['Familia']].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+// ─────────────────────────────────────────────────────────
+//  TABLE
+// ─────────────────────────────────────────────────────────
+function renderTable() {
+  // Update sort indicators
+  document.querySelectorAll('#main-table thead th').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    const sp = th.querySelector('span');
+    if (th.dataset.col === sortCol) {
+      th.classList.add('sort-' + sortDir);
+      if (sp) sp.textContent = sortDir === 'asc' ? '↑' : '↓';
+    } else {
+      if (sp) sp.textContent = '↕';
+    }
+  });
+
+  let rows = getFiltered();
+
+  // Sort
+  rows = [...rows].sort((a,b) => {
+    const av = a[sortCol] ?? '', bv = b[sortCol] ?? '';
+    const an = parseNum(av), bn = parseNum(bv);
+    let cmp;
+    if (an !== null && bn !== null) cmp = an - bn;
+    else cmp = String(av).localeCompare(String(bv),'es',{sensitivity:'base'});
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const tbody = document.getElementById('table-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">Sin resultados</td></tr>`;
+    document.getElementById('table-footer').textContent = 'Sin resultados';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const abc = r['ABC'] || '';
+    const riskClass = abc === 'A' ? 'risk-a' : abc === 'B' ? 'risk-b' : abc === 'C' ? 'risk-c' : '';
+    const abcBadge = abc === 'A' ? 'badge-red' : abc === 'B' ? 'badge-yellow' : 'badge-blue';
+    const tend = normTend(r['Tendencia']);
+    const tendClass = tend.includes('↑') ? 'tend-up' : tend.includes('↓') ? 'tend-down' : '';
+    const resp = r['Responsable'] || '';
+    const cobert = parseNum(r['Cobert (m)']);
+    const cobertColor = cobert !== null && cobert > 60 ? 'color:var(--red);font-weight:600' : '';
+
+    return `<tr class="${riskClass}">
+      <td><span style="font-family:monospace;font-size:.78rem;color:var(--muted)">${r['Código']||'—'}</span></td>
+      <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
+      <td style="white-space:nowrap">${r['Familia']||'—'}</td>
+      <td>${r['Marca']||'—'}</td>
+      <td><span class="badge ${abcBadge}">${abc||'—'}</span></td>
+      <td style="text-align:right">${numFmt(r['Stock actual'])}</td>
+      <td style="text-align:right">${r['Costo USD']||'—'}</td>
+      <td style="text-align:right;font-weight:500">${r['Valorizado USD']||'—'}</td>
+      <td style="text-align:right">${r['Prom. mes']||'—'}</td>
+      <td style="text-align:right;${cobertColor}">${r['Cobert (m)']||'—'}</td>
+      <td class="${tendClass}">${tend||'—'}</td>
+      <td>${resp ? `<span class="badge badge-muted">${resp}</span>` : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-footer').textContent =
+    `Mostrando ${rows.length} de ${allRows.length} productos`;
+}
+
+// ─────────────────────────────────────────────────────────
+//  PLAN DE ACCIÓN
+// ─────────────────────────────────────────────────────────
+function loadPlans() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; }
+}
+
+// Abstracted save — replace body to POST to API in the future
+function savePlan(plan) {
+  const plans = loadPlans();
+  const idx = plans.findIndex(p => p.id === plan.id);
+  if (idx >= 0) plans[idx] = plan; else plans.push(plan);
+  localStorage.setItem(LS_KEY, JSON.stringify(plans));
+}
+
+function deletePlan(id) {
+  localStorage.setItem(LS_KEY, JSON.stringify(loadPlans().filter(p => p.id !== id)));
+}
+
+function populatePlanDropdown() {
+  const sel = document.getElementById('plan-producto');
+  const cur = sel.value;
+  const opts = allRows
+    .map(r => ({ label: `${r['Nombre']} [${r['Código']}]`, codigo: r['Código'] }))
+    .filter(o => o.label.trim())
+    .sort((a,b) => a.label.localeCompare(b.label,'es'));
+  sel.innerHTML = `<option value="">— Seleccionar producto —</option>` +
+    opts.map(o => `<option value="${o.codigo}"${o.codigo===cur?' selected':''}>${o.label}</option>`).join('');
+}
+
+function getRowByCodigo(codigo) {
+  return allRows.find(r => r['Código'] === codigo) || null;
+}
+
+function renderPlans() {
+  const plans = loadPlans();
+  const tbody = document.getElementById('plans-body');
+  if (!plans.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">No hay planes guardados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = plans.map(p => {
+    const r = getRowByCodigo(p.codigo);
+    const nombre = r ? r['Nombre'] : p.nombre || p.codigo;
+    return `<tr>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${nombre}">${nombre}</td>
+      <td><span style="font-family:monospace;font-size:.78rem;color:var(--muted)">${p.codigo}</span></td>
+      <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.estrategia}">${p.estrategia}</td>
+      <td>${p.responsable||'—'}</td>
+      <td>${p.fecha}</td>
+      <td>${p.objetivo ? numFmt(p.objetivo)+' u.' : '—'}</td>
+      <td><span class="badge ${p.estado==='Activo'?'badge-green':'badge-purple'}">${p.estado}</span></td>
+      <td>
+        <div class="plan-actions">
+          <button class="btn btn-secondary btn-sm" onclick="editPlan('${p.id}')" title="Editar">
+            <i data-lucide="pencil" style="width:12px;height:12px"></i>
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleStatus('${p.id}')" title="${p.estado==='Activo'?'Cerrar plan':'Reabrir plan'}">
+            ${p.estado==='Activo'
+              ? '<i data-lucide="check-circle" style="width:12px;height:12px"></i>'
+              : '<i data-lucide="rotate-ccw" style="width:12px;height:12px"></i>'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${p.id}')" title="Eliminar">
+            <i data-lucide="trash-2" style="width:12px;height:12px"></i>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function editPlan(id) {
+  const p = loadPlans().find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('plan-producto').value   = p.codigo;
+  document.getElementById('plan-estrategia').value = p.estrategia;
+  document.getElementById('plan-responsable').value = p.responsable || '';
+  document.getElementById('plan-fecha').value       = p.fecha;
+  document.getElementById('plan-objetivo').value    = p.objetivo || '';
+  document.getElementById('btn-save-plan').innerHTML = '<i data-lucide="save" style="width:14px;height:14px"></i> Actualizar Plan';
+  document.getElementById('form-title').innerHTML = '<i data-lucide="pencil" style="width:16px;height:16px;color:var(--accent)"></i> Editar Plan';
+  lucide.createIcons();
+  document.getElementById('planes').scrollIntoView({ behavior:'smooth' });
+}
+
+function toggleStatus(id) {
+  const p = loadPlans().find(x => x.id === id);
+  if (!p) return;
+  p.estado = p.estado === 'Activo' ? 'Cerrado' : 'Activo';
+  savePlan(p);
+  renderPlans();
+  renderEvolucion();
+}
+
+function confirmDelete(id) {
+  if (confirm('¿Eliminar este plan?')) { deletePlan(id); renderPlans(); renderEvolucion(); }
+}
+
+function resetForm() {
+  editingId = null;
+  ['plan-producto','plan-estrategia','plan-responsable','plan-objetivo'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('plan-fecha').value = today();
+  document.getElementById('btn-save-plan').innerHTML = '<i data-lucide="save" style="width:14px;height:14px"></i> Guardar Plan';
+  document.getElementById('form-title').innerHTML = '<i data-lucide="plus-circle" style="width:16px;height:16px;color:var(--green)"></i> Nuevo Plan';
+  document.getElementById('plan-error').style.display = 'none';
+  lucide.createIcons();
+}
+
+// ─────────────────────────────────────────────────────────
+//  EVOLUCIÓN
+// ─────────────────────────────────────────────────────────
+function renderEvolucion() {
+  const plans = loadPlans().filter(p => p.estado === 'Activo');
+  const container = document.getElementById('evo-content');
+
+  if (!plans.length) {
+    container.innerHTML = `<div class="state-center">
+      <i data-lucide="inbox" style="width:40px;height:40px;color:var(--muted)"></i>
+      <span>No hay planes activos. Creá uno en <strong>Plan de Acción</strong>.</span>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  const sorted = [...plans].sort((a,b) => daysBetween(a.fecha, today()) < daysBetween(b.fecha, today()) ? 1 : -1);
+
+  container.innerHTML = `<div class="evo-grid">${sorted.map(p => {
+    const row = getRowByCodigo(p.codigo);
+    const nombre = row ? row['Nombre'] : p.nombre || p.codigo;
+    const stockAct = row ? parseNum(row['Stock actual']) : null;
+    const stockIni = p.stockInicial ?? null;
+    const dias = daysBetween(p.fecha, today());
+    const movidas = (stockIni !== null && stockAct !== null) ? stockIni - stockAct : null;
+    const sinMov = movidas !== null && movidas <= 0;
+
+    // Progreso: si hay objetivo → vs objetivo; sino → % reducción vs inicial
+    let pct = 0, barColor = 'var(--accent)';
+    if (p.objetivo && stockIni !== null && movidas !== null) {
+      pct = Math.min(100, Math.round((movidas / p.objetivo) * 100));
+      barColor = pct >= 100 ? 'var(--green)' : pct > 50 ? 'var(--accent)' : 'var(--red)';
+    } else if (stockIni && movidas !== null) {
+      pct = stockIni > 0 ? Math.min(100, Math.max(0, Math.round((movidas/stockIni)*100))) : 0;
+      barColor = pct > 15 ? 'var(--green)' : 'var(--accent)';
+    }
+
+    // Coberturas actuales
+    const cobert = row ? row['Cobert (m)'] : null;
+    const valActual = row ? row['Valorizado USD'] : null;
+
+    return `<div class="evo-card">
+      <div class="evo-header">
+        <div>
+          <div class="evo-title">${nombre}</div>
+          <div class="evo-strategy">${p.estrategia}</div>
+        </div>
+        <div class="evo-badges">
+          ${sinMov ? '<span class="badge badge-red">Sin movimiento</span>' : ''}
+          ${p.responsable ? `<span class="badge badge-blue">${p.responsable}</span>` : ''}
+          ${cobert ? `<span class="badge badge-muted">${cobert} m cobert.</span>` : ''}
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>${stockIni !== null ? `Stock: ${numFmt(stockIni)} → ${stockAct !== null ? numFmt(stockAct) : '?'}` : 'Sin datos de stock'}</span>
+          <span>${p.objetivo ? pct+'%' : movidas !== null ? (movidas > 0 ? '−'+numFmt(movidas)+' u.' : 'Sin cambio') : ''}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${Math.max(0,pct)}%;background:${barColor}"></div>
+        </div>
+        ${p.objetivo ? `<div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">Objetivo: ${numFmt(p.objetivo)} unidades</div>` : ''}
+      </div>
+
+      <div class="evo-stats">
+        <div class="evo-stat">
+          <div class="evo-stat-label">Stock inicial</div>
+          <div class="evo-stat-value">${stockIni !== null ? numFmt(stockIni) : '—'}</div>
+        </div>
+        <div class="evo-stat">
+          <div class="evo-stat-label">Stock actual</div>
+          <div class="evo-stat-value" style="color:${stockAct!==null && movidas!==null && movidas>0 ? 'var(--green)' : 'var(--text)'}">
+            ${stockAct !== null ? numFmt(stockAct) : '—'}
+          </div>
+        </div>
+        <div class="evo-stat">
+          <div class="evo-stat-label">Unidades movidas</div>
+          <div class="evo-stat-value" style="color:${movidas!==null && movidas>0 ? 'var(--green)' : movidas!==null && movidas<=0 ? 'var(--red)' : 'var(--text)'}">
+            ${movidas !== null ? (movidas >= 0 ? '+' : '')+numFmt(movidas) : '—'}
+          </div>
+        </div>
+        <div class="evo-stat">
+          <div class="evo-stat-label">Días transcurridos</div>
+          <div class="evo-stat-value">${dias}</div>
+        </div>
+        ${valActual ? `<div class="evo-stat" style="grid-column:span 2">
+          <div class="evo-stat-label">Valorizado actual</div>
+          <div class="evo-stat-value">${valActual}</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+  lucide.createIcons();
+}
+
+// ─────────────────────────────────────────────────────────
+//  CSV MODAL
+// ─────────────────────────────────────────────────────────
+function openModal() { document.getElementById('csv-modal').classList.remove('hidden'); }
+
+// ─────────────────────────────────────────────────────────
+//  EVENT LISTENERS
+// ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+  document.getElementById('plan-fecha').value = today();
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    })
+  );
+
+  // Refresh
+  document.getElementById('btn-refresh').addEventListener('click', () => loadData());
+  document.getElementById('btn-refresh-evo').addEventListener('click', () => loadData());
+
+  // Filters
+  ['search','f-familia','f-marca','f-abc','f-origen','f-tend'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => { if (allRows.length) renderTable(); })
+  );
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    ['search','f-familia','f-marca','f-abc','f-origen','f-tend'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    if (allRows.length) renderTable();
+  });
+
+  // Table sort
+  document.querySelectorAll('#main-table thead th').forEach(th =>
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortCol = col; sortDir = 'desc'; }
+      renderTable();
+    })
+  );
+
+  // Save plan
+  document.getElementById('btn-save-plan').addEventListener('click', () => {
+    const codigo = document.getElementById('plan-producto').value;
+    const estrategia = document.getElementById('plan-estrategia').value.trim();
+    const errEl = document.getElementById('plan-error');
+    if (!codigo) { errEl.textContent = 'Seleccioná un producto.'; errEl.style.display='block'; return; }
+    if (!estrategia) { errEl.textContent = 'Ingresá una estrategia.'; errEl.style.display='block'; return; }
+    errEl.style.display = 'none';
+
+    const row = getRowByCodigo(codigo);
+    const existing = editingId ? loadPlans().find(p => p.id === editingId) : null;
+
+    const plan = {
+      id:          editingId || uid(),
+      codigo,
+      nombre:      row ? row['Nombre'] : codigo,
+      estrategia,
+      responsable: document.getElementById('plan-responsable').value.trim(),
+      fecha:       document.getElementById('plan-fecha').value || today(),
+      objetivo:    document.getElementById('plan-objetivo').value ? parseFloat(document.getElementById('plan-objetivo').value) : null,
+      estado:      'Activo',
+      creadoEn:    existing?.creadoEn || new Date().toISOString(),
+      // Capturar stock actual como stockInicial al crear; preservar si es edición
+      stockInicial: existing?.stockInicial ?? (row ? parseNum(row['Stock actual']) : null),
+    };
+
+    savePlan(plan);
+    resetForm();
+    renderPlans();
+    renderEvolucion();
+  });
+
+  document.getElementById('btn-cancel-plan').addEventListener('click', resetForm);
+
+  // CSV modal
+  document.getElementById('btn-load-csv').addEventListener('click', openModal);
+  document.getElementById('btn-modal-cancel').addEventListener('click', () =>
+    document.getElementById('csv-modal').classList.add('hidden')
+  );
+  document.getElementById('btn-modal-load').addEventListener('click', () => {
+    const text = document.getElementById('csv-paste').value.trim();
+    const errEl = document.getElementById('modal-error');
+    if (!text) { errEl.textContent = 'Pegá el contenido CSV primero.'; errEl.style.display='block'; return; }
+    document.getElementById('csv-modal').classList.add('hidden');
+    document.getElementById('csv-paste').value = '';
+    loadData(text);
+  });
+  document.getElementById('csv-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('csv-modal'))
+      document.getElementById('csv-modal').classList.add('hidden');
+  });
+
+  // Auto-load
+  loadData();
+});
+</script>
+</body>
+</html>
