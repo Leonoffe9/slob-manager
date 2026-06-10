@@ -218,6 +218,33 @@
   .kpi-down::before { background: var(--red); }
   .kpi-down .kpi-value { color: var(--red); }
 
+  /* ── Product search combobox ── */
+  .prod-search-wrap { position: relative; }
+  .prod-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    max-height: 220px; overflow-y: auto; z-index: 50;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .prod-dropdown.open { display: block; }
+  .prod-dropdown::-webkit-scrollbar { width: 4px; }
+  .prod-dropdown::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .prod-item {
+    padding: .5rem .85rem; cursor: pointer; font-size: .82rem;
+    border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: .1rem;
+  }
+  .prod-item:last-child { border-bottom: none; }
+  .prod-item:hover, .prod-item.highlighted { background: var(--card2); }
+  .prod-item-name { color: var(--text); }
+  .prod-item-meta { font-size: .71rem; color: var(--muted); }
+  .prod-empty { padding: .65rem .85rem; color: var(--muted); font-size: .82rem; }
+  .prod-selected-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3);
+    border-radius: 4px; padding: .2rem .55rem; font-size: .75rem; color: var(--accent);
+    margin-top: .35rem;
+  }
+
   /* ── Oportunidades ── */
   .oport-section {
     background: var(--card); border: 1px solid rgba(245,158,11,.35);
@@ -436,9 +463,14 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Producto *</label>
-          <select id="plan-producto">
-            <option value="">— Seleccionar producto —</option>
-          </select>
+          <div class="prod-search-wrap" id="prod-search-wrap">
+            <i data-lucide="search" class="search-icon" style="width:14px;height:14px"></i>
+            <input type="text" id="plan-producto-search"
+              placeholder="Buscar por nombre o código…"
+              autocomplete="off" style="padding-left:2rem;width:100%" />
+            <input type="hidden" id="plan-producto" />
+            <div class="prod-dropdown" id="prod-dropdown"></div>
+          </div>
         </div>
         <div class="form-group">
           <label>Responsable</label>
@@ -933,15 +965,56 @@ function deletePlan(id) {
   localStorage.setItem(LS_KEY, JSON.stringify(loadPlans().filter(p => p.id !== id)));
 }
 
+let prodOpts = [];  // { nombre, codigo, familia, marca }
+
 function populatePlanDropdown() {
-  const sel = document.getElementById('plan-producto');
-  const cur = sel.value;
-  const opts = allRows
-    .map(r => ({ label: `${r['Nombre']} [${r['Código']}]`, codigo: r['Código'] }))
-    .filter(o => o.label.trim())
-    .sort((a,b) => a.label.localeCompare(b.label,'es'));
-  sel.innerHTML = `<option value="">— Seleccionar producto —</option>` +
-    opts.map(o => `<option value="${o.codigo}"${o.codigo===cur?' selected':''}>${o.label}</option>`).join('');
+  prodOpts = allRows
+    .map(r => ({ nombre: r['Nombre'] || '', codigo: r['Código'] || '', familia: r['Familia'] || '', marca: r['Marca'] || '' }))
+    .filter(o => o.nombre || o.codigo)
+    .sort((a,b) => a.nombre.localeCompare(b.nombre,'es'));
+}
+
+function openProdDropdown(q) {
+  const dd = document.getElementById('prod-dropdown');
+  const term = (q || '').toLowerCase();
+  const matches = term.length === 0
+    ? prodOpts.slice(0, 60)
+    : prodOpts.filter(o =>
+        o.nombre.toLowerCase().includes(term) ||
+        o.codigo.toLowerCase().includes(term) ||
+        o.marca.toLowerCase().includes(term)
+      ).slice(0, 60);
+
+  if (!matches.length) {
+    dd.innerHTML = `<div class="prod-empty">Sin resultados para "${q}"</div>`;
+  } else {
+    dd.innerHTML = matches.map(o =>
+      `<div class="prod-item" data-codigo="${o.codigo}">
+        <span class="prod-item-name">${o.nombre}</span>
+        <span class="prod-item-meta">${o.codigo}${o.familia ? ' · ' + o.familia : ''}${o.marca ? ' · ' + o.marca : ''}</span>
+      </div>`
+    ).join('');
+    dd.querySelectorAll('.prod-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectProd(el.dataset.codigo);
+      });
+    });
+  }
+  dd.classList.add('open');
+}
+
+function selectProd(codigo) {
+  const o = prodOpts.find(p => p.codigo === codigo);
+  if (!o) return;
+  document.getElementById('plan-producto').value = codigo;
+  document.getElementById('plan-producto-search').value = o.nombre + ' [' + o.codigo + ']';
+  document.getElementById('prod-dropdown').classList.remove('open');
+}
+
+function clearProdSelection() {
+  document.getElementById('plan-producto').value = '';
+  document.getElementById('plan-producto-search').value = '';
 }
 
 function getRowByCodigo(codigo) {
@@ -990,7 +1063,9 @@ function editPlan(id) {
   const p = loadPlans().find(x => x.id === id);
   if (!p) return;
   editingId = id;
-  document.getElementById('plan-producto').value   = p.codigo;
+  document.getElementById('plan-producto').value = p.codigo;
+  const o = prodOpts.find(x => x.codigo === p.codigo);
+  document.getElementById('plan-producto-search').value = o ? o.nombre + ' [' + o.codigo + ']' : p.codigo;
   document.getElementById('plan-estrategia').value = p.estrategia;
   document.getElementById('plan-responsable').value = p.responsable || '';
   document.getElementById('plan-fecha').value       = p.fecha;
@@ -1019,6 +1094,8 @@ function resetForm() {
   ['plan-producto','plan-estrategia','plan-responsable','plan-objetivo'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  document.getElementById('plan-producto-search').value = '';
+  document.getElementById('prod-dropdown').classList.remove('open');
   document.getElementById('plan-fecha').value = today();
   document.getElementById('btn-save-plan').innerHTML = '<i data-lucide="save" style="width:14px;height:14px"></i> Guardar Plan';
   document.getElementById('form-title').innerHTML = '<i data-lucide="plus-circle" style="width:16px;height:16px;color:var(--green)"></i> Nuevo Plan';
@@ -1152,6 +1229,34 @@ document.addEventListener('DOMContentLoaded', () => {
   ['search','f-familia','f-marca','f-abc','f-origen','f-tend'].forEach(id =>
     document.getElementById(id).addEventListener('input', () => { if (allRows.length) renderTable(); })
   );
+  // Product search combobox
+  const prodSearch = document.getElementById('plan-producto-search');
+  prodSearch.addEventListener('focus', () => openProdDropdown(prodSearch.value));
+  prodSearch.addEventListener('input', () => {
+    document.getElementById('plan-producto').value = '';
+    openProdDropdown(prodSearch.value);
+  });
+  prodSearch.addEventListener('blur', () => {
+    setTimeout(() => document.getElementById('prod-dropdown').classList.remove('open'), 150);
+  });
+  prodSearch.addEventListener('keydown', e => {
+    const dd = document.getElementById('prod-dropdown');
+    const items = dd.querySelectorAll('.prod-item');
+    let cur = [...items].findIndex(el => el.classList.contains('highlighted'));
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (cur < items.length - 1) { if (cur >= 0) items[cur].classList.remove('highlighted'); items[cur+1].classList.add('highlighted'); items[cur+1].scrollIntoView({block:'nearest'}); }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (cur > 0) { items[cur].classList.remove('highlighted'); items[cur-1].classList.add('highlighted'); items[cur-1].scrollIntoView({block:'nearest'}); }
+    } else if (e.key === 'Enter' && cur >= 0) {
+      e.preventDefault();
+      selectProd(items[cur].dataset.codigo);
+    } else if (e.key === 'Escape') {
+      dd.classList.remove('open');
+    }
+  });
+
   document.getElementById('oport-toggle').addEventListener('click', () => {
     const body    = document.getElementById('oport-body');
     const chevron = document.getElementById('oport-chevron');
