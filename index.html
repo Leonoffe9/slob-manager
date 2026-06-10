@@ -401,7 +401,6 @@
                   <th style="text-align:right">% del total</th>
                   <th style="text-align:right">% acumulado</th>
                   <th>Tendencia</th>
-                  <th>Responsable</th>
                   <th></th>
                 </tr>
               </thead>
@@ -442,7 +441,6 @@
               <th data-col="Prom. mes" style="text-align:right">Prom/mes <span>↕</span></th>
               <th data-col="Cobert (m)" style="text-align:right">Cobert. (m) <span>↕</span></th>
               <th data-col="Tendencia">Tendencia <span>↕</span></th>
-              <th data-col="Responsable">Responsable <span>↕</span></th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
@@ -835,7 +833,6 @@ function renderOportunidades() {
         <span style="font-weight:600;color:${parseFloat(pctCum)>=75?'var(--accent)':'var(--text)'}">${pctCum}%</span>
       </td>
       <td class="${tendClass}">${tend||'—'}</td>
-      <td>${resp ? `<span class="badge badge-blue" style="font-size:.65rem">${resp}</span>` : (hasPlan ? '<span class="badge badge-green" style="font-size:.65rem">Con plan</span>' : '<span style="color:var(--muted);font-size:.78rem">Sin asignar</span>')}</td>
     </tr>`;
   }).join('');
 }
@@ -944,7 +941,6 @@ function renderTable() {
       <td style="text-align:right">${r['Prom. mes']||'—'}</td>
       <td style="text-align:right;${cobertColor}">${r['Cobert (m)']||'—'}</td>
       <td class="${tendClass}">${tend||'—'}</td>
-      <td>${resp ? `<span class="badge badge-muted">${resp}</span>` : '—'}</td>
     </tr>`;
   }).join('');
 
