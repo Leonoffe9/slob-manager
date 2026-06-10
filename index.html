@@ -556,7 +556,9 @@ async function loadData(csvText = null) {
 }
 
 function processCSV(text) {
-  const raw = parseCSV(text);
+  // Strip BOM y normalizar encoding antes de parsear
+  const clean = text.replace(/^﻿/, '').normalize('NFC');
+  const raw = parseCSV(clean);
 
   // Fila 1: extraer "Actualizado: DD/MM/YYYY HH:mm"
   const titleRow = raw[0]?.[0] || '';
@@ -572,11 +574,20 @@ function processCSV(text) {
   sheetMeta.pct   = kpiRow[6] || null;
 
   // Fila 5 (índice 4): headers reales
-  const headers = raw[4] || [];
+  // Normalizar: strip BOM, trim, normalizar unicode para evitar mismatch
+  const normHeader = h => h
+    .replace(/^﻿/, '')          // BOM
+    .replace(/ /g, ' ')         // non-breaking space → space
+    .trim()
+    .normalize('NFC');               // compose unicode (tildes, etc.)
+  const headers = (raw[4] || []).map(normHeader);
+
+  // Log para debug
+  console.log('Headers detectados:', headers);
 
   // Fila 6+ (índice 5+): datos
   allRows = raw.slice(5)
-    .filter(r => r.some(c => c !== '') && r[0] !== '' && !isNaN(r[0]))
+    .filter(r => r.some(c => c !== '') && r[0] !== '' && !isNaN(String(r[0]).replace(/\./g,'').replace(',','.')))
     .map(r => {
       const obj = {};
       headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
