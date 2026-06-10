@@ -315,16 +315,6 @@
         <div class="kpi-value" id="kpi-pct">—</div>
         <div class="kpi-sub">Penetración SLOB</div>
       </div>
-      <div class="kpi-card kpi-warn">
-        <div class="kpi-label">Cobertura crítica (&gt;24m)</div>
-        <div class="kpi-value" id="kpi-criticos">—</div>
-        <div class="kpi-sub" id="kpi-criticos-sub">Productos ABC-A</div>
-      </div>
-      <div class="kpi-card kpi-down">
-        <div class="kpi-label">Tendencia bajando</div>
-        <div class="kpi-value" id="kpi-bajando">—</div>
-        <div class="kpi-sub">SKUs con ↓ en ventas</div>
-      </div>
     </div>
 
     <!-- Estado de carga -->
@@ -749,14 +739,6 @@ function renderKPIs() {
 
   document.getElementById('kpi-pct').textContent = sheetMeta.pct || '—';
 
-  const criticos = allRows.filter(r => (parseNum(r['Cobert (m)']) || 0) > 24);
-  const criticosA = criticos.filter(r => r['ABC'] === 'A');
-  document.getElementById('kpi-criticos').textContent = numFmt(criticos.length);
-  document.getElementById('kpi-criticos-sub').textContent =
-    criticosA.length + ' son ABC-A · ' + criticos.length + ' total';
-
-  const bajando = allRows.filter(r => normTend(r['Tendencia']).includes('↓'));
-  document.getElementById('kpi-bajando').textContent = numFmt(bajando.length);
 }
 
 // ─────────────────────────────────────────────────────────
@@ -767,14 +749,11 @@ function calcPareto() {
   const sorted = [...allRows].sort((a,b) =>
     (parseNum(b['Valorizado USD'])||0) - (parseNum(a['Valorizado USD'])||0)
   );
-  const target = totalVal * 0.80;
   let cum = 0;
-  const items = [];
-  for (const r of sorted) {
+  const items = sorted.slice(0, 20).map(r => {
     cum += parseNum(r['Valorizado USD']) || 0;
-    items.push({ row: r, cum });
-    if (cum >= target) break;
-  }
+    return { row: r, cum };
+  });
   return { items, totalVal };
 }
 
