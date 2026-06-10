@@ -821,7 +821,7 @@ function renderOportunidades() {
     const resp = r['Responsable'] || '';
     const hasPlan = loadPlans().some(p => p.codigo === r['Código'] && p.estado === 'Activo');
     return `<tr>
-      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
+      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+</button></td>
       <td style="color:var(--muted);font-size:.78rem">${idx+1}</td>
       <td><span style="font-family:monospace;font-size:.75rem;color:var(--muted)">${r['Código']||'—'}</span></td>
       <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
@@ -931,7 +931,7 @@ function renderTable() {
     const cobertColor = cobert !== null && cobert > 60 ? 'color:var(--red);font-weight:600' : '';
 
     return `<tr class="${riskClass}">
-      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
+      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+</button></td>
       <td><span style="font-family:monospace;font-size:.78rem;color:var(--muted)">${r['Código']||'—'}</span></td>
       <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
       <td style="white-space:nowrap">${r['Familia']||'—'}</td>
