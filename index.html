@@ -389,6 +389,7 @@
             <table>
               <thead>
                 <tr>
+                  <th></th>
                   <th>#</th>
                   <th>Código</th>
                   <th>Nombre</th>
@@ -428,6 +429,7 @@
         <table id="main-table">
           <thead>
             <tr>
+              <th></th>
               <th data-col="Código">Código <span>↕</span></th>
               <th data-col="Nombre">Nombre <span>↕</span></th>
               <th data-col="Familia">Familia <span>↕</span></th>
@@ -440,7 +442,6 @@
               <th data-col="Cobert (m)" style="text-align:right">Cobert. (m) <span>↕</span></th>
               <th data-col="Tendencia">Tendencia <span>↕</span></th>
               <th data-col="Responsable">Responsable <span>↕</span></th>
-              <th></th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
@@ -820,6 +821,7 @@ function renderOportunidades() {
     const resp = r['Responsable'] || '';
     const hasPlan = loadPlans().some(p => p.codigo === r['Código'] && p.estado === 'Activo');
     return `<tr>
+      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
       <td style="color:var(--muted);font-size:.78rem">${idx+1}</td>
       <td><span style="font-family:monospace;font-size:.75rem;color:var(--muted)">${r['Código']||'—'}</span></td>
       <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
@@ -833,7 +835,6 @@ function renderOportunidades() {
       </td>
       <td class="${tendClass}">${tend||'—'}</td>
       <td>${resp ? `<span class="badge badge-blue" style="font-size:.65rem">${resp}</span>` : (hasPlan ? '<span class="badge badge-green" style="font-size:.65rem">Con plan</span>' : '<span style="color:var(--muted);font-size:.78rem">Sin asignar</span>')}</td>
-      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
     </tr>`;
   }).join('');
 }
@@ -930,6 +931,7 @@ function renderTable() {
     const cobertColor = cobert !== null && cobert > 60 ? 'color:var(--red);font-weight:600' : '';
 
     return `<tr class="${riskClass}">
+      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
       <td><span style="font-family:monospace;font-size:.78rem;color:var(--muted)">${r['Código']||'—'}</span></td>
       <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
       <td style="white-space:nowrap">${r['Familia']||'—'}</td>
@@ -942,7 +944,6 @@ function renderTable() {
       <td style="text-align:right;${cobertColor}">${r['Cobert (m)']||'—'}</td>
       <td class="${tendClass}">${tend||'—'}</td>
       <td>${resp ? `<span class="badge badge-muted">${resp}</span>` : '—'}</td>
-      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
     </tr>`;
   }).join('');
 
