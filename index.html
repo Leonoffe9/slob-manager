@@ -74,6 +74,7 @@
   .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
   .btn-danger:hover { background: var(--red); color: #fff; }
   .btn-sm { padding: .3rem .65rem; font-size: .75rem; }
+  .btn-xs { padding: .15rem .45rem; font-size: .8rem; font-weight: 700; line-height: 1; }
 
   /* ── KPI Cards ── */
   .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
@@ -821,7 +822,7 @@ function renderOportunidades() {
     const resp = r['Responsable'] || '';
     const hasPlan = loadPlans().some(p => p.codigo === r['Código'] && p.estado === 'Activo');
     return `<tr>
-      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+</button></td>
+      <td><button class="btn btn-primary btn-xs" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+</button></td>
       <td style="color:var(--muted);font-size:.78rem">${idx+1}</td>
       <td><span style="font-family:monospace;font-size:.75rem;color:var(--muted)">${r['Código']||'—'}</span></td>
       <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
@@ -931,7 +932,7 @@ function renderTable() {
     const cobertColor = cobert !== null && cobert > 60 ? 'color:var(--red);font-weight:600' : '';
 
     return `<tr class="${riskClass}">
-      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+</button></td>
+      <td><button class="btn btn-primary btn-xs" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+</button></td>
       <td><span style="font-family:monospace;font-size:.78rem;color:var(--muted)">${r['Código']||'—'}</span></td>
       <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
       <td style="white-space:nowrap">${r['Familia']||'—'}</td>
