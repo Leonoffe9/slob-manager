@@ -833,9 +833,7 @@ function renderOportunidades() {
       </td>
       <td class="${tendClass}">${tend||'—'}</td>
       <td>${resp ? `<span class="badge badge-blue" style="font-size:.65rem">${resp}</span>` : (hasPlan ? '<span class="badge badge-green" style="font-size:.65rem">Con plan</span>' : '<span style="color:var(--muted);font-size:.78rem">Sin asignar</span>')}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">
-        <i data-lucide="plus-circle" style="width:12px;height:12px"></i> Plan
-      </button></td>
+      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
     </tr>`;
   }).join('');
 }
@@ -944,9 +942,7 @@ function renderTable() {
       <td style="text-align:right;${cobertColor}">${r['Cobert (m)']||'—'}</td>
       <td class="${tendClass}">${tend||'—'}</td>
       <td>${resp ? `<span class="badge badge-muted">${resp}</span>` : '—'}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">
-        <i data-lucide="plus-circle" style="width:12px;height:12px"></i> Plan
-      </button></td>
+      <td><button class="btn btn-primary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">+ Plan</button></td>
     </tr>`;
   }).join('');
 
