@@ -212,6 +212,38 @@
   .empty-row td { text-align: center; color: var(--muted); padding: 2rem; }
   .plan-actions { display: flex; gap: .4rem; }
 
+  /* KPI accent variants */
+  .kpi-warn::before { background: var(--red); }
+  .kpi-warn .kpi-value { color: var(--red); }
+  .kpi-down::before { background: var(--red); }
+  .kpi-down .kpi-value { color: var(--red); }
+
+  /* ── Oportunidades ── */
+  .oport-section {
+    background: var(--card); border: 1px solid rgba(245,158,11,.35);
+    border-radius: var(--radius); margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .oport-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .85rem 1.1rem; cursor: pointer; user-select: none;
+    background: rgba(245,158,11,.06);
+  }
+  .oport-header:hover { background: rgba(245,158,11,.1); }
+  .oport-title { display: flex; align-items: center; gap: .55rem; font-weight: 700; font-size: .95rem; }
+  .oport-title i { color: var(--accent); }
+  .oport-meta { display: flex; align-items: center; gap: 1rem; }
+  .oport-stat { text-align: right; }
+  .oport-stat-val { font-size: .95rem; font-weight: 700; color: var(--accent); }
+  .oport-stat-label { font-size: .68rem; color: var(--muted); }
+  .oport-chevron { color: var(--muted); transition: transform .25s; }
+  .oport-chevron.open { transform: rotate(180deg); }
+  .oport-body { display: none; border-top: 1px solid var(--border); }
+  .oport-body.open { display: block; }
+  .oport-bar-wrap { padding: .75rem 1.1rem; display: flex; align-items: center; gap: .75rem; }
+  .oport-bar-track { flex: 1; height: 6px; background: var(--card2); border-radius: 99px; overflow: hidden; }
+  .oport-bar-fill { height: 100%; background: var(--accent); border-radius: 99px; }
+  .oport-bar-label { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+
   @media (max-width: 640px) {
     header { padding: 0 1rem; }
     main { padding: 1rem; }
@@ -283,15 +315,15 @@
         <div class="kpi-value" id="kpi-pct">—</div>
         <div class="kpi-sub">Penetración SLOB</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Stock Total (unidades)</div>
-        <div class="kpi-value" id="kpi-stock">—</div>
-        <div class="kpi-sub">Suma inventario SLOB</div>
+      <div class="kpi-card kpi-warn">
+        <div class="kpi-label">Cobertura crítica (&gt;24m)</div>
+        <div class="kpi-value" id="kpi-criticos">—</div>
+        <div class="kpi-sub" id="kpi-criticos-sub">Productos ABC-A</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Cobertura Prom.</div>
-        <div class="kpi-value" id="kpi-cobert">—</div>
-        <div class="kpi-sub">Meses promedio de stock</div>
+      <div class="kpi-card kpi-down">
+        <div class="kpi-label">Tendencia bajando</div>
+        <div class="kpi-value" id="kpi-bajando">—</div>
+        <div class="kpi-sub">SKUs con ↓ en ventas</div>
       </div>
     </div>
 
@@ -303,6 +335,62 @@
 
     <!-- Contenido principal -->
     <div id="dash-content" style="display:none">
+
+      <!-- OPORTUNIDADES: Pareto 80/20 -->
+      <div class="oport-section">
+        <div class="oport-header" id="oport-toggle">
+          <div class="oport-title">
+            <i data-lucide="zap" style="width:17px;height:17px"></i>
+            OPORTUNIDADES
+            <span style="font-size:.75rem;font-weight:400;color:var(--muted)" id="oport-subtitle"></span>
+          </div>
+          <div class="oport-meta">
+            <div class="oport-stat">
+              <div class="oport-stat-val" id="oport-n">—</div>
+              <div class="oport-stat-label">productos</div>
+            </div>
+            <div class="oport-stat">
+              <div class="oport-stat-val" id="oport-val">—</div>
+              <div class="oport-stat-label">valorizado</div>
+            </div>
+            <div class="oport-stat">
+              <div class="oport-stat-val" id="oport-pct-prods">—</div>
+              <div class="oport-stat-label">del catálogo SLOB</div>
+            </div>
+            <i data-lucide="chevron-down" class="oport-chevron" id="oport-chevron" style="width:18px;height:18px"></i>
+          </div>
+        </div>
+        <div class="oport-body" id="oport-body">
+          <div class="oport-bar-wrap">
+            <span class="oport-bar-label" id="oport-bar-left">0%</span>
+            <div class="oport-bar-track">
+              <div class="oport-bar-fill" id="oport-bar-fill" style="width:0%"></div>
+            </div>
+            <span class="oport-bar-label">80% del valorizado</span>
+          </div>
+          <div class="table-wrap" style="border:none;border-radius:0">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Familia</th>
+                  <th>Marca</th>
+                  <th>ABC</th>
+                  <th style="text-align:right">Valorizado</th>
+                  <th style="text-align:right">% del total</th>
+                  <th style="text-align:right">% acumulado</th>
+                  <th>Tendencia</th>
+                  <th>Responsable</th>
+                </tr>
+              </thead>
+              <tbody id="oport-body-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div class="filters">
         <div class="search-wrap">
           <i data-lucide="search" class="search-icon" style="width:14px;height:14px"></i>
@@ -636,6 +724,7 @@ function setDashState(type, msg = '') {
 // ─────────────────────────────────────────────────────────
 function renderAll() {
   renderKPIs();
+  renderOportunidades();
   populateFilters();
   renderTable();
   populatePlanDropdown();
@@ -660,12 +749,79 @@ function renderKPIs() {
 
   document.getElementById('kpi-pct').textContent = sheetMeta.pct || '—';
 
-  const totStock = allRows.reduce((a,r) => a + (parseNum(r['Stock actual'])||0), 0);
-  document.getElementById('kpi-stock').textContent = numFmt(totStock);
+  const criticos = allRows.filter(r => (parseNum(r['Cobert (m)']) || 0) > 24);
+  const criticosA = criticos.filter(r => r['ABC'] === 'A');
+  document.getElementById('kpi-criticos').textContent = numFmt(criticos.length);
+  document.getElementById('kpi-criticos-sub').textContent =
+    criticosA.length + ' son ABC-A · ' + criticos.length + ' total';
 
-  const cobertArr = allRows.map(r => parseNum(r['Cobert (m)'])).filter(v => v !== null);
-  const promCobert = cobertArr.length ? Math.round(cobertArr.reduce((a,b)=>a+b,0)/cobertArr.length) : null;
-  document.getElementById('kpi-cobert').textContent = promCobert !== null ? promCobert + ' m' : '—';
+  const bajando = allRows.filter(r => normTend(r['Tendencia']).includes('↓'));
+  document.getElementById('kpi-bajando').textContent = numFmt(bajando.length);
+}
+
+// ─────────────────────────────────────────────────────────
+//  OPORTUNIDADES — Pareto 80/20
+// ─────────────────────────────────────────────────────────
+function calcPareto() {
+  const totalVal = allRows.reduce((a,r) => a + (parseNum(r['Valorizado USD'])||0), 0);
+  const sorted = [...allRows].sort((a,b) =>
+    (parseNum(b['Valorizado USD'])||0) - (parseNum(a['Valorizado USD'])||0)
+  );
+  const target = totalVal * 0.80;
+  let cum = 0;
+  const items = [];
+  for (const r of sorted) {
+    cum += parseNum(r['Valorizado USD']) || 0;
+    items.push({ row: r, cum });
+    if (cum >= target) break;
+  }
+  return { items, totalVal };
+}
+
+function renderOportunidades() {
+  const { items, totalVal } = calcPareto();
+  const n = items.length;
+  const cumVal = items[items.length - 1]?.cum || 0;
+  const pctProds = ((n / allRows.length) * 100).toFixed(1);
+  const pctVal   = ((cumVal / totalVal) * 100).toFixed(1);
+
+  document.getElementById('oport-subtitle').textContent =
+    '— el ' + pctProds + '% de los productos concentra el 80% del valorizado';
+  document.getElementById('oport-n').textContent = n;
+  document.getElementById('oport-val').textContent = 'USD ' +
+    new Intl.NumberFormat('es-AR').format(Math.round(cumVal));
+  document.getElementById('oport-pct-prods').textContent = pctProds + '%';
+  document.getElementById('oport-bar-left').textContent = pctVal + '%';
+  document.getElementById('oport-bar-fill').style.width = Math.min(100, pctVal) + '%';
+
+  const tbody = document.getElementById('oport-body-rows');
+  tbody.innerHTML = items.map((item, idx) => {
+    const r = item.row;
+    const val = parseNum(r['Valorizado USD']) || 0;
+    const pctItem = ((val / totalVal) * 100).toFixed(1);
+    const pctCum  = ((item.cum / totalVal) * 100).toFixed(1);
+    const abc = r['ABC'] || '';
+    const abcBadge = abc === 'A' ? 'badge-red' : abc === 'B' ? 'badge-yellow' : 'badge-blue';
+    const tend = normTend(r['Tendencia'] || '');
+    const tendClass = tend.includes('↑') ? 'tend-up' : tend.includes('↓') ? 'tend-down' : '';
+    const resp = r['Responsable'] || '';
+    const hasPlan = loadPlans().some(p => p.codigo === r['Código'] && p.estado === 'Activo');
+    return `<tr>
+      <td style="color:var(--muted);font-size:.78rem">${idx+1}</td>
+      <td><span style="font-family:monospace;font-size:.75rem;color:var(--muted)">${r['Código']||'—'}</span></td>
+      <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
+      <td style="white-space:nowrap">${r['Familia']||'—'}</td>
+      <td>${r['Marca']||'—'}</td>
+      <td><span class="badge ${abcBadge}">${abc||'—'}</span></td>
+      <td style="text-align:right;font-weight:600">USD ${new Intl.NumberFormat('es-AR').format(Math.round(val))}</td>
+      <td style="text-align:right;color:var(--muted)">${pctItem}%</td>
+      <td style="text-align:right">
+        <span style="font-weight:600;color:${parseFloat(pctCum)>=75?'var(--accent)':'var(--text)'}">${pctCum}%</span>
+      </td>
+      <td class="${tendClass}">${tend||'—'}</td>
+      <td>${resp ? `<span class="badge badge-blue" style="font-size:.65rem">${resp}</span>` : (hasPlan ? '<span class="badge badge-green" style="font-size:.65rem">Con plan</span>' : '<span style="color:var(--muted);font-size:.78rem">Sin asignar</span>')}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1017,6 +1173,14 @@ document.addEventListener('DOMContentLoaded', () => {
   ['search','f-familia','f-marca','f-abc','f-origen','f-tend'].forEach(id =>
     document.getElementById(id).addEventListener('input', () => { if (allRows.length) renderTable(); })
   );
+  document.getElementById('oport-toggle').addEventListener('click', () => {
+    const body    = document.getElementById('oport-body');
+    const chevron = document.getElementById('oport-chevron');
+    body.classList.toggle('open');
+    chevron.classList.toggle('open');
+    lucide.createIcons();
+  });
+
   document.getElementById('btn-clear').addEventListener('click', () => {
     ['search','f-familia','f-marca','f-abc','f-origen','f-tend'].forEach(id => {
       document.getElementById(id).value = '';
