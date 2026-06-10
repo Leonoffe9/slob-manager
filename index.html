@@ -573,26 +573,28 @@ function processCSV(text) {
   sheetMeta.valor = kpiRow[3] || null;
   sheetMeta.pct   = kpiRow[6] || null;
 
-  // Encontrar la fila de headers dinamicamente
-  const normH = h => h.replace(/[​﻿ ]/g, '').trim().normalize('NFC');
+  // Encontrar la fila de headers dinamicamente (tolera filas vacias extra)
+  const trimH = h => h.replace(/^﻿/, "").replace(/ /g, " ").trim();
   const headerRowIdx = raw.findIndex(row => {
-    const j = row.map(c => c.normalize('NFC')).join('|').toLowerCase();
-    return j.includes('nombre') && j.includes('familia');
+    const vals = row.map(trimH);
+    const hasNombre = vals.some(v => v.toLowerCase() === "nombre");
+    const hasFamilia = vals.some(v => v.toLowerCase() === "familia");
+    return hasNombre && hasFamilia;
   });
-  if (headerRowIdx === -1) throw new Error('No se encontro la fila de headers en el CSV.');
-  const headers = raw[headerRowIdx].map(normH);
-  console.log('Headers fila ' + headerRowIdx + ':', JSON.stringify(headers));
+  if (headerRowIdx === -1) throw new Error("No se encontro la fila de headers.");
+  const headers = raw[headerRowIdx].map(trimH);
+  console.log("Headers fila", headerRowIdx, ":", JSON.stringify(headers));
 
   // Datos: filas siguientes con numero en columna 0
   allRows = raw.slice(headerRowIdx + 1)
-    .filter(r => r.some(c => c !== '') && /^\d+$/.test(String(r[0]).trim()))
+    .filter(r => r.some(c => c !== "") && /^\d+$/.test(String(r[0]).trim()))
     .map(r => {
       const obj = {};
-      headers.forEach((h, i) => { obj[h] = r[i] || ''; });
+      headers.forEach((h, i) => { obj[h] = r[i] || ""; });
       return obj;
     });
-  console.log('Filas cargadas:', allRows.length, '| Primera:', JSON.stringify(allRows[0]));
-  if (allRows.length === 0) throw new Error('No se encontraron filas de datos.');
+  console.log("Filas cargadas:", allRows.length, "| Primera:", JSON.stringify(allRows[0]));
+  if (allRows.length === 0) throw new Error("No se encontraron filas de datos.");
 
   renderAll();
   setDashState(null);
