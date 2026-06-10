@@ -400,6 +400,7 @@
                   <th style="text-align:right">% acumulado</th>
                   <th>Tendencia</th>
                   <th>Responsable</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="oport-body-rows"></tbody>
@@ -439,6 +440,7 @@
               <th data-col="Cobert (m)" style="text-align:right">Cobert. (m) <span>↕</span></th>
               <th data-col="Tendencia">Tendencia <span>↕</span></th>
               <th data-col="Responsable">Responsable <span>↕</span></th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
@@ -831,6 +833,9 @@ function renderOportunidades() {
       </td>
       <td class="${tendClass}">${tend||'—'}</td>
       <td>${resp ? `<span class="badge badge-blue" style="font-size:.65rem">${resp}</span>` : (hasPlan ? '<span class="badge badge-green" style="font-size:.65rem">Con plan</span>' : '<span style="color:var(--muted);font-size:.78rem">Sin asignar</span>')}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">
+        <i data-lucide="plus-circle" style="width:12px;height:12px"></i> Plan
+      </button></td>
     </tr>`;
   }).join('');
 }
@@ -939,6 +944,9 @@ function renderTable() {
       <td style="text-align:right;${cobertColor}">${r['Cobert (m)']||'—'}</td>
       <td class="${tendClass}">${tend||'—'}</td>
       <td>${resp ? `<span class="badge badge-muted">${resp}</span>` : '—'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="irAPlan('${r['Código'].replace(/'/g,"\\'")}')">
+        <i data-lucide="plus-circle" style="width:12px;height:12px"></i> Plan
+      </button></td>
     </tr>`;
   }).join('');
 
@@ -1015,6 +1023,21 @@ function selectProd(codigo) {
 function clearProdSelection() {
   document.getElementById('plan-producto').value = '';
   document.getElementById('plan-producto-search').value = '';
+}
+
+function irAPlan(codigo) {
+  // Navegar al tab de planes
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelector('[data-tab="planes"]').classList.add('active');
+  document.getElementById('planes').classList.add('active');
+
+  // Pre-seleccionar el producto en el combobox
+  selectProd(codigo);
+
+  // Scroll al formulario
+  document.getElementById('plan-producto-search').focus();
+  document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function getRowByCodigo(codigo) {
