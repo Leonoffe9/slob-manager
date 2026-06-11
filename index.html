@@ -575,8 +575,10 @@
 // ─────────────────────────────────────────────────────────
 //  CONFIG
 // ─────────────────────────────────────────────────────────
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJQKZbLu-GP-3zvLs1D8XH0-kcydm9dM95RI0p53Fmn6VA0d1GzGQ_Vl6AASRfH0NIIA5HnMqNtFBI/pub?gid=1111014850&single=true&output=csv';
-const LS_KEY  = 'slob_action_plans_v2';
+const CSV_URL      = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJQKZbLu-GP-3zvLs1D8XH0-kcydm9dM95RI0p53Fmn6VA0d1GzGQ_Vl6AASRfH0NIIA5HnMqNtFBI/pub?gid=1111014850&single=true&output=csv';
+const LS_KEY       = 'slob_action_plans_v2';
+const SB_URL       = 'https://pjstgywpkzwotmgcxtri.supabase.co';
+const SB_KEY       = 'sb_publishable_dZxjcL2Ql8LlghMn7tmSYg_BGliGvbu';
 
 // Estructura conocida del CSV:
 // Fila 1: título/metadata  → extraer "Actualizado: DD/MM/YYYY HH:mm"
@@ -760,7 +762,7 @@ function renderAll() {
   renderTable();
   populatePlanDropdown();
   renderPlans();
-  renderEvolucion();
+  renderEvolucion();// async, fire-and-forget OK
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1106,11 +1108,11 @@ function toggleStatus(id) {
   p.estado = p.estado === 'Activo' ? 'Cerrado' : 'Activo';
   savePlan(p);
   renderPlans();
-  renderEvolucion();
+  renderEvolucion();// async, fire-and-forget OK
 }
 
 function confirmDelete(id) {
-  if (confirm('¿Eliminar este plan?')) { deletePlan(id); renderPlans(); renderEvolucion(); }
+  if (confirm('¿Eliminar este plan?')) { deletePlan(id); renderPlans(); renderEvolucion();// async, fire-and-forget OK }
 }
 
 function resetForm() {
@@ -1128,9 +1130,38 @@ function resetForm() {
 }
 
 // ─────────────────────────────────────────────────────────
+//  SUPABASE — solo lectura finnegans.stock
+// ─────────────────────────────────────────────────────────
+const sbHeaders = {
+  'apikey': SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  'Accept-Profile': 'finnegans'
+};
+
+async function fetchStockSB(codigo) {
+  try {
+    const url = `${SB_URL}/rest/v1/stock?codigo=eq.${encodeURIComponent(codigo)}&select=cantidad`;
+    const resp = await fetch(url, { headers: sbHeaders });
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    return rows.reduce((sum, r) => sum + (parseFloat(r.cantidad) || 0), 0);
+  } catch { return null; }
+}
+
+async function fetchVentasSB(codigo, fechaDesde) {
+  try {
+    const url = `${SB_URL}/rest/v1/facturas?codigo_prod=eq.${encodeURIComponent(codigo)}&fecha_comprobante=gte.${fechaDesde}&select=cantidad`;
+    const resp = await fetch(url, { headers: sbHeaders });
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    return rows.reduce((sum, r) => sum + (parseFloat(r.cantidad) || 0), 0);
+  } catch { return null; }
+}
+
+// ─────────────────────────────────────────────────────────
 //  EVOLUCIÓN
 // ─────────────────────────────────────────────────────────
-function renderEvolucion() {
+async function renderEvolucion() {
   const plans = loadPlans().filter(p => p.estado === 'Activo');
   const container = document.getElementById('evo-content');
 
@@ -1143,18 +1174,26 @@ function renderEvolucion() {
     return;
   }
 
+  // Loading state mientras se busca stock en Supabase
+  container.innerHTML = `<div class="state-center"><div class="spinner"></div><span>Consultando stock en tiempo real…</span></div>`;
+
   const sorted = [...plans].sort((a,b) => daysBetween(a.fecha, today()) < daysBetween(b.fecha, today()) ? 1 : -1);
 
-  container.innerHTML = `<div class="evo-grid">${sorted.map(p => {
-    const row = getRowByCodigo(p.codigo);
-    const nombre = row ? row['Nombre'] : p.nombre || p.codigo;
-    const stockAct = row ? parseNum(row['Stock actual']) : null;
-    const stockIni = p.stockInicial ?? null;
-    const dias = daysBetween(p.fecha, today());
-    const movidas = (stockIni !== null && stockAct !== null) ? stockIni - stockAct : null;
-    const sinMov = movidas !== null && movidas <= 0;
+  // Fetch stock desde Supabase para cada plan en paralelo
+  const stocksLive = await Promise.all(sorted.map(p => fetchStockSB(p.codigo)));
+  const ventasLive = await Promise.all(sorted.map(p => fetchVentasSB(p.codigo, p.fecha)));
 
-    // Progreso: si hay objetivo → vs objetivo; sino → % reducción vs inicial
+  container.innerHTML = `<div class="evo-grid">${sorted.map((p, i) => {
+    const row       = getRowByCodigo(p.codigo);
+    const nombre    = row ? row['Nombre'] : p.nombre || p.codigo;
+    const stockAct  = stocksLive[i] !== null ? stocksLive[i] : (row ? parseNum(row['Stock actual']) : null);
+    const stockSrc  = stocksLive[i] !== null ? 'supabase' : 'sheet';
+    const stockIni  = p.stockInicial ?? null;
+    const ventasDias = ventasLive[i];
+    const dias      = daysBetween(p.fecha, today());
+    const movidas   = (stockIni !== null && stockAct !== null) ? stockIni - stockAct : null;
+    const sinMov    = movidas !== null && movidas <= 0;
+
     let pct = 0, barColor = 'var(--accent)';
     if (p.objetivo && stockIni !== null && movidas !== null) {
       pct = Math.min(100, Math.round((movidas / p.objetivo) * 100));
@@ -1164,8 +1203,7 @@ function renderEvolucion() {
       barColor = pct > 15 ? 'var(--green)' : 'var(--accent)';
     }
 
-    // Coberturas actuales
-    const cobert = row ? row['Cobert (m)'] : null;
+    const cobert   = row ? row['Cobert (m)'] : null;
     const valActual = row ? row['Valorizado USD'] : null;
 
     return `<div class="evo-card">
@@ -1173,17 +1211,23 @@ function renderEvolucion() {
         <div>
           <div class="evo-title">${nombre}</div>
           <div class="evo-strategy">${p.estrategia}</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">
+            <span class="badge ${stockSrc==='supabase' ? 'badge-green' : 'badge-muted'}" style="font-size:.62rem">
+              ${stockSrc === 'supabase' ? '● En vivo' : '○ Sheet'}
+            </span>
+            <span style="margin-left:.4rem">Código: ${p.codigo}</span>
+          </div>
         </div>
         <div class="evo-badges">
           ${sinMov ? '<span class="badge badge-red">Sin movimiento</span>' : ''}
           ${p.responsable ? `<span class="badge badge-blue">${p.responsable}</span>` : ''}
-          ${cobert ? `<span class="badge badge-muted">${cobert} m cobert.</span>` : ''}
+          ${cobert ? `<span class="badge badge-muted">${cobert}m cobert.</span>` : ''}
         </div>
       </div>
 
       <div class="progress-wrap">
         <div class="progress-label">
-          <span>${stockIni !== null ? `Stock: ${numFmt(stockIni)} → ${stockAct !== null ? numFmt(stockAct) : '?'}` : 'Sin datos de stock'}</span>
+          <span>${stockIni !== null ? `${numFmt(stockIni)} → ${stockAct !== null ? numFmt(stockAct) : '?'}` : 'Sin datos de stock'}</span>
           <span>${p.objetivo ? pct+'%' : movidas !== null ? (movidas > 0 ? '−'+numFmt(movidas)+' u.' : 'Sin cambio') : ''}</span>
         </div>
         <div class="progress-bar">
@@ -1198,7 +1242,7 @@ function renderEvolucion() {
           <div class="evo-stat-value">${stockIni !== null ? numFmt(stockIni) : '—'}</div>
         </div>
         <div class="evo-stat">
-          <div class="evo-stat-label">Stock actual</div>
+          <div class="evo-stat-label">Stock actual ${stockSrc==='supabase' ? '🔴' : ''}</div>
           <div class="evo-stat-value" style="color:${stockAct!==null && movidas!==null && movidas>0 ? 'var(--green)' : 'var(--text)'}">
             ${stockAct !== null ? numFmt(stockAct) : '—'}
           </div>
@@ -1206,16 +1250,20 @@ function renderEvolucion() {
         <div class="evo-stat">
           <div class="evo-stat-label">Unidades movidas</div>
           <div class="evo-stat-value" style="color:${movidas!==null && movidas>0 ? 'var(--green)' : movidas!==null && movidas<=0 ? 'var(--red)' : 'var(--text)'}">
-            ${movidas !== null ? (movidas >= 0 ? '+' : '')+numFmt(movidas) : '—'}
+            ${movidas !== null ? numFmt(Math.abs(movidas)) : '—'}
           </div>
         </div>
         <div class="evo-stat">
           <div class="evo-stat-label">Días transcurridos</div>
           <div class="evo-stat-value">${dias}</div>
         </div>
-        ${valActual ? `<div class="evo-stat" style="grid-column:span 2">
-          <div class="evo-stat-label">Valorizado actual</div>
-          <div class="evo-stat-value">${valActual}</div>
+        ${ventasDias !== null ? `<div class="evo-stat">
+          <div class="evo-stat-label">Ventas desde inicio</div>
+          <div class="evo-stat-value" style="color:var(--green)">${numFmt(ventasDias)} u.</div>
+        </div>` : ''}
+        ${valActual ? `<div class="evo-stat">
+          <div class="evo-stat-label">Valorizado</div>
+          <div class="evo-stat-value" style="font-size:.85rem">${valActual}</div>
         </div>` : ''}
       </div>
     </div>`;
@@ -1335,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     savePlan(plan);
     resetForm();
     renderPlans();
-    renderEvolucion();
+    renderEvolucion();// async, fire-and-forget OK
   });
 
   document.getElementById('btn-cancel-plan').addEventListener('click', resetForm);
