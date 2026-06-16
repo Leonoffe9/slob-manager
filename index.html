@@ -343,6 +343,11 @@
         <div class="kpi-value" id="kpi-pct">—</div>
         <div class="kpi-sub">Penetración SLOB</div>
       </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Rotación</div>
+        <div class="kpi-value" id="kpi-rotacion">—</div>
+        <div class="kpi-sub">u. vendidas / SKU SLOB</div>
+      </div>
     </div>
 
     <!-- Estado de carga -->
@@ -778,6 +783,11 @@ function renderKPIs() {
   }
 
   document.getElementById('kpi-pct').textContent = sheetMeta.pct || '—';
+
+  const totalVendidas = allRows.reduce((a, r) => a + (parseNum(r['Prom. mes']) || 0), 0);
+  const totalSlobsN   = allRows.length || 1;
+  const rotacion      = totalVendidas / totalSlobsN;
+  document.getElementById('kpi-rotacion').textContent = rotacion.toFixed(1);
 
 }
 
