@@ -396,10 +396,8 @@
                   <th>Nombre</th>
                   <th>Familia</th>
                   <th>Marca</th>
-                  <th>ABC</th>
                   <th style="text-align:right">Valorizado</th>
                   <th style="text-align:right">% del total</th>
-                  <th style="text-align:right">% acumulado</th>
                   <th>Tendencia</th>
                   <th></th>
                 </tr>
@@ -434,7 +432,6 @@
               <th data-col="Nombre">Nombre <span>↕</span></th>
               <th data-col="Familia">Familia <span>↕</span></th>
               <th data-col="Marca">Marca <span>↕</span></th>
-              <th data-col="ABC">ABC <span>↕</span></th>
               <th data-col="Stock actual" style="text-align:right">Stock <span>↕</span></th>
               <th data-col="Costo USD" style="text-align:right">Costo USD <span>↕</span></th>
               <th data-col="Valorizado USD" style="text-align:right">Valorizado <span>↕</span></th>
@@ -835,12 +832,8 @@ function renderOportunidades() {
       <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
       <td style="white-space:nowrap">${r['Familia']||'—'}</td>
       <td>${r['Marca']||'—'}</td>
-      <td><span class="badge ${abcBadge}">${abc||'—'}</span></td>
       <td style="text-align:right;font-weight:600">USD ${new Intl.NumberFormat('es-AR').format(Math.round(val))}</td>
       <td style="text-align:right;color:var(--muted)">${pctItem}%</td>
-      <td style="text-align:right">
-        <span style="font-weight:600;color:${parseFloat(pctCum)>=75?'var(--accent)':'var(--text)'}">${pctCum}%</span>
-      </td>
       <td class="${tendClass}">${tend||'—'}</td>
     </tr>`;
   }).join('');
@@ -943,7 +936,6 @@ function renderTable() {
       <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['Nombre']||''}">${r['Nombre']||'—'}</td>
       <td style="white-space:nowrap">${r['Familia']||'—'}</td>
       <td>${r['Marca']||'—'}</td>
-      <td><span class="badge ${abcBadge}">${abc||'—'}</span></td>
       <td style="text-align:right">${numFmt(r['Stock actual'])}</td>
       <td style="text-align:right">${r['Costo USD']||'—'}</td>
       <td style="text-align:right;font-weight:500">${r['Valorizado USD']||'—'}</td>
