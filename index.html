@@ -1166,64 +1166,105 @@ async function fetchVentasSB(codigo, fechaDesde) {
 // ─────────────────────────────────────────────────────────
 //  PANEL OPORTUNIDADES EN EVOLUCIÓN
 // ─────────────────────────────────────────────────────────
-function renderEvoOport() {
+async function renderEvoOport() {
   const panel = document.getElementById('evo-oport-panel');
   if (!allRows.length) { panel.innerHTML = ''; return; }
 
   const { items } = calcPareto();
-  const plans = loadPlans().filter(p => p.estado === 'Activo');
-  const planCodigos = new Set(plans.map(p => p.codigo));
+  const plans = loadPlans();
 
-  const conPlan = items.filter(item => planCodigos.has(item.row['Código']));
-  const sinPlan = items.filter(item => !planCodigos.has(item.row['Código']));
-  const valTotal = items.reduce((a, item) => a + (parseNum(item.row['Valorizado USD']) || 0), 0);
-  const valCubierto = conPlan.reduce((a, item) => a + (parseNum(item.row['Valorizado USD']) || 0), 0);
-  const pctCubierto = valTotal > 0 ? Math.round((valCubierto / valTotal) * 100) : 0;
+  // Header + spinner mientras carga Supabase
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
+      <i data-lucide="zap" style="width:18px;height:18px;color:var(--accent)"></i>
+      <span style="font-weight:700;font-size:.95rem">Evolución de Oportunidades</span>
+      <span style="font-size:.75rem;color:var(--muted)">Top 20 por valorizado</span>
+    </div>
+    <div class="state-center"><div class="spinner"></div><span>Consultando stock…</span></div>`;
+  lucide.createIcons();
+
+  const stocks = await Promise.all(items.map(item => fetchStockSB(item.row['Código'])));
+
+  const cards = items.map((item, i) => {
+    const r        = item.row;
+    const codigo   = r['Código'] || '';
+    const nombre   = r['Nombre'] || codigo;
+    const stockCSV = parseNum(r['Stock actual']);
+    const stockLive = stocks[i];
+    const stockAct  = stockLive !== null ? stockLive : stockCSV;
+    const stockSrc  = stockLive !== null ? 'supabase' : 'sheet';
+    const movidas   = (stockCSV !== null && stockAct !== null) ? stockCSV - stockAct : null;
+    const val       = r['Valorizado USD'] || '—';
+    const plan      = plans.find(p => p.codigo === codigo && p.estado === 'Activo');
+
+    let pct = 0, barColor = 'var(--accent)';
+    if (plan?.objetivo && movidas !== null) {
+      pct = Math.min(100, Math.round((movidas / plan.objetivo) * 100));
+      barColor = pct >= 100 ? 'var(--green)' : pct > 50 ? 'var(--accent)' : 'var(--red)';
+    } else if (stockCSV && movidas !== null) {
+      pct = stockCSV > 0 ? Math.min(100, Math.max(0, Math.round((movidas / stockCSV) * 100))) : 0;
+      barColor = pct > 15 ? 'var(--green)' : 'var(--accent)';
+    }
+
+    return `<div class="evo-card">
+      <div class="evo-header">
+        <div>
+          <div class="evo-title">${nombre}</div>
+          <div class="evo-strategy" style="color:var(--muted)">${r['Familia'] || ''}</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:.3rem">
+            <span class="badge ${stockSrc === 'supabase' ? 'badge-green' : 'badge-muted'}" style="font-size:.62rem">
+              ${stockSrc === 'supabase' ? '● En vivo' : '○ Sheet'}
+            </span>
+            <span style="margin-left:.4rem">Código: ${codigo}</span>
+          </div>
+        </div>
+        <div class="evo-badges">
+          ${plan ? `<span class="badge badge-green">Con plan</span>` : `<button onclick="irAPlan('${codigo}')" style="font-size:.68rem;padding:.2rem .5rem;border-radius:4px;border:1px solid var(--border);background:var(--card2);cursor:pointer;color:var(--text);font-family:var(--font)">+ Plan</button>`}
+          ${r['Cobert (m)'] ? `<span class="badge badge-muted">${r['Cobert (m)']}m</span>` : ''}
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>${stockCSV !== null ? `${numFmt(stockCSV)} → ${stockAct !== null ? numFmt(stockAct) : '?'}` : 'Sin datos de stock'}</span>
+          <span>${movidas !== null ? (movidas > 0 ? '−'+numFmt(movidas)+' u.' : 'Sin cambio') : ''}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${Math.max(0,pct)}%;background:${barColor}"></div>
+        </div>
+      </div>
+      <div class="evo-stats">
+        <div class="evo-stat">
+          <div class="evo-stat-label">Stock sheet</div>
+          <div class="evo-stat-value">${stockCSV !== null ? numFmt(stockCSV) : '—'}</div>
+        </div>
+        <div class="evo-stat">
+          <div class="evo-stat-label">Stock actual ${stockSrc === 'supabase' ? '🔴' : ''}</div>
+          <div class="evo-stat-value" style="color:${movidas !== null && movidas > 0 ? 'var(--green)' : 'var(--text)'}">
+            ${stockAct !== null ? numFmt(stockAct) : '—'}
+          </div>
+        </div>
+        <div class="evo-stat">
+          <div class="evo-stat-label">Unidades movidas</div>
+          <div class="evo-stat-value" style="color:${movidas !== null && movidas > 0 ? 'var(--green)' : movidas !== null && movidas <= 0 ? 'var(--red)' : 'var(--text)'}">
+            ${movidas !== null ? numFmt(Math.abs(movidas)) : '—'}
+          </div>
+        </div>
+        <div class="evo-stat">
+          <div class="evo-stat-label">Valorizado</div>
+          <div class="evo-stat-value" style="font-size:.8rem">${val}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 
   panel.innerHTML = `
-    <div class="card" style="padding:1.1rem 1.25rem">
-      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
-        <i data-lucide="zap" style="width:16px;height:16px;color:var(--accent)"></i>
-        <span style="font-weight:600;font-size:.9rem">Seguimiento de Oportunidades</span>
-        <span style="font-size:.75rem;color:var(--muted);margin-left:.25rem">Top 20 por valorizado</span>
-      </div>
-      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem">
-        <div>
-          <div style="font-size:1.4rem;font-weight:700;color:var(--accent)">${conPlan.length}<span style="font-size:.85rem;color:var(--muted);font-weight:400"> / ${items.length}</span></div>
-          <div style="font-size:.72rem;color:var(--muted)">con plan activo</div>
-        </div>
-        <div>
-          <div style="font-size:1.4rem;font-weight:700">${sinPlan.length}</div>
-          <div style="font-size:.72rem;color:var(--muted)">sin plan</div>
-        </div>
-        <div>
-          <div style="font-size:1.4rem;font-weight:700">USD ${new Intl.NumberFormat('es-AR').format(Math.round(valCubierto))}</div>
-          <div style="font-size:.72rem;color:var(--muted)">valorizado cubierto</div>
-        </div>
-        <div>
-          <div style="font-size:1.4rem;font-weight:700">${pctCubierto}%</div>
-          <div style="font-size:.72rem;color:var(--muted)">del top 20 con plan</div>
-        </div>
-      </div>
-      <div style="margin-bottom:.75rem">
-        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:.3rem">
-          <span>Cobertura con plan</span><span>${pctCubierto}%</span>
-        </div>
-        <div style="height:6px;background:var(--card2);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${pctCubierto}%;background:var(--accent);border-radius:3px;transition:width .4s"></div>
-        </div>
-      </div>
-      ${sinPlan.length > 0 ? `
-      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">Sin plan — oportunidades pendientes:</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-        ${sinPlan.map(item => `
-          <button onclick="irAPlan('${item.row['Código']}')"
-            style="font-size:.7rem;padding:.2rem .55rem;border-radius:4px;border:1px solid var(--border);background:var(--card2);cursor:pointer;color:var(--text);font-family:var(--font)">
-            + ${item.row['Nombre'] || item.row['Código']}
-          </button>
-        `).join('')}
-      </div>` : `<div style="font-size:.78rem;color:var(--green);font-weight:500">✓ Todas las oportunidades tienen plan activo</div>`}
-    </div>`;
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
+      <i data-lucide="zap" style="width:18px;height:18px;color:var(--accent)"></i>
+      <span style="font-weight:700;font-size:.95rem">Evolución de Oportunidades</span>
+      <span style="font-size:.75rem;color:var(--muted)">Top 20 por valorizado</span>
+    </div>
+    <div class="evo-grid">${cards}</div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0">`;
   lucide.createIcons();
 }
 
