@@ -547,6 +547,9 @@
         Actualizar stock actual
       </button>
     </div>
+    <!-- Panel: oportunidades del dashboard -->
+    <div id="evo-oport-panel" style="margin-bottom:1.5rem"></div>
+
     <div id="evo-content"></div>
   </section>
 
@@ -1161,9 +1164,74 @@ async function fetchVentasSB(codigo, fechaDesde) {
 }
 
 // ─────────────────────────────────────────────────────────
+//  PANEL OPORTUNIDADES EN EVOLUCIÓN
+// ─────────────────────────────────────────────────────────
+function renderEvoOport() {
+  const panel = document.getElementById('evo-oport-panel');
+  if (!allRows.length) { panel.innerHTML = ''; return; }
+
+  const { items } = calcPareto();
+  const plans = loadPlans().filter(p => p.estado === 'Activo');
+  const planCodigos = new Set(plans.map(p => p.codigo));
+
+  const conPlan = items.filter(item => planCodigos.has(item.row['Código']));
+  const sinPlan = items.filter(item => !planCodigos.has(item.row['Código']));
+  const valTotal = items.reduce((a, item) => a + (parseNum(item.row['Valorizado USD']) || 0), 0);
+  const valCubierto = conPlan.reduce((a, item) => a + (parseNum(item.row['Valorizado USD']) || 0), 0);
+  const pctCubierto = valTotal > 0 ? Math.round((valCubierto / valTotal) * 100) : 0;
+
+  panel.innerHTML = `
+    <div class="card" style="padding:1.1rem 1.25rem">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
+        <i data-lucide="zap" style="width:16px;height:16px;color:var(--accent)"></i>
+        <span style="font-weight:600;font-size:.9rem">Seguimiento de Oportunidades</span>
+        <span style="font-size:.75rem;color:var(--muted);margin-left:.25rem">Top 20 por valorizado</span>
+      </div>
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem">
+        <div>
+          <div style="font-size:1.4rem;font-weight:700;color:var(--accent)">${conPlan.length}<span style="font-size:.85rem;color:var(--muted);font-weight:400"> / ${items.length}</span></div>
+          <div style="font-size:.72rem;color:var(--muted)">con plan activo</div>
+        </div>
+        <div>
+          <div style="font-size:1.4rem;font-weight:700">${sinPlan.length}</div>
+          <div style="font-size:.72rem;color:var(--muted)">sin plan</div>
+        </div>
+        <div>
+          <div style="font-size:1.4rem;font-weight:700">USD ${new Intl.NumberFormat('es-AR').format(Math.round(valCubierto))}</div>
+          <div style="font-size:.72rem;color:var(--muted)">valorizado cubierto</div>
+        </div>
+        <div>
+          <div style="font-size:1.4rem;font-weight:700">${pctCubierto}%</div>
+          <div style="font-size:.72rem;color:var(--muted)">del top 20 con plan</div>
+        </div>
+      </div>
+      <div style="margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:.3rem">
+          <span>Cobertura con plan</span><span>${pctCubierto}%</span>
+        </div>
+        <div style="height:6px;background:var(--card2);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pctCubierto}%;background:var(--accent);border-radius:3px;transition:width .4s"></div>
+        </div>
+      </div>
+      ${sinPlan.length > 0 ? `
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem">Sin plan — oportunidades pendientes:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        ${sinPlan.map(item => `
+          <button onclick="irAPlan('${item.row['Código']}')"
+            style="font-size:.7rem;padding:.2rem .55rem;border-radius:4px;border:1px solid var(--border);background:var(--card2);cursor:pointer;color:var(--text);font-family:var(--font)">
+            + ${item.row['Nombre'] || item.row['Código']}
+          </button>
+        `).join('')}
+      </div>` : `<div style="font-size:.78rem;color:var(--green);font-weight:500">✓ Todas las oportunidades tienen plan activo</div>`}
+    </div>`;
+  lucide.createIcons();
+}
+
+// ─────────────────────────────────────────────────────────
 //  EVOLUCIÓN
 // ─────────────────────────────────────────────────────────
 async function renderEvolucion() {
+  renderEvoOport();
   const plans = loadPlans().filter(p => p.estado === 'Activo');
   const container = document.getElementById('evo-content');
 
